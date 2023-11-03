@@ -1,0 +1,232 @@
+###########################################################################################################
+
+#### Improving the alignment: Using the pilon for polishing ##############
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 10
+#$ -l h_rt=100:0:0
+#$ -l h_vmem=20G
+#$ -l highmem
+
+start=`date +%s`
+
+# Load module(s):
+module load anaconda3/2023.03
+
+conda activate pilon
+
+# Input(s):
+genome_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs2/assembly/hifiasm/B_hypochlora.hifi_160623.asm.bp.p_ctg.fa"
+sorted_hifi_aln="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools/sorting/hifialnB_hypochlora_sorted.bam"
+outdir="/data/scratch/mpx586/Batesia_hypochlora/output3/polishing/"
+
+# Commands
+
+pilon -Xmx200G --genome $genome_asm \
+	--bam $sorted_hifi_aln \
+	--output hifialn_ctg.polished \
+	--outdir $outdir \
+	--changes \
+	--tracks \
+	--fix all \
+	--minmq 30 \
+	--minqual 30
+
+end=`date +%s`
+
+runtime=$((end - start ))
+
+echo Finished
+echo $runtime
+echo $(date)
+
+
+#######################################################################################################
+
+#sort polished bam file by name
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=2G
+
+# Load module(s):
+module load samtools
+
+
+# Input(s):
+# First step: To sort bam file by name before remove duplicate
+polished_ctg_aln="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/1_convert_to_bam/polished_ctg_aln.bam"
+
+
+# Commands
+samtools sort -n $polished_ctg_aln -o polished_ctg_sorted_name.bam
+
+echo Finish
+echo $(date)
+
+
+### to correct the structure of bam file (sorted by name) #######
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=2G
+
+# Load module(s):
+module load samtools
+
+
+# Input(s):
+#Second step: to add special 'ms' and 'MC' tags for the 'samtools markdup' program to use later on
+polished_ctg_sorted_name="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/polished_ctg_sorted_name.bam"
+
+
+# Commands
+samtools fixmate -m $polished_ctg_sorted_name polished_ctg_sortname_fixmate.bam
+
+echo Finish
+echo $(date)
+
+
+
+#### Mark duplicate ####
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=2G
+
+# Load module(s):
+module load samtools
+
+
+# Input(s):
+# Fourth step: mark the duplicates, and in this case actually remove them with the '-r' option
+polished_ctg_sortname_fixmate_resort="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/polished_ctg_sortname_fixmate_resort.bam"
+
+
+# Commands
+samtools markdup -r $polished_ctg_sortname_fixmate_resort final_scaffold.bam
+
+echo Finish
+echo $(date)
+
+
+### Resort by coordinate for the removed duplicate bam file #######
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=2G
+
+# Load module(s):
+module load samtools
+
+
+# Input(s):
+# Fifth step: To resort the bam by coordinate for fixmate file before remove duplicate
+polished_ctg_sortname_fixmate="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/polished_ctg_sortname_fixmate.bam"
+
+
+# Commands
+samtools sort $polished_ctg_sortname_fixmate -o polished_ctg_sortname_fixmate_resort.bam
+
+echo Finish
+echo $(date)
+
+
+
+
+####### Index alignment ###########
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=2G
+
+#Load module
+module load samtools
+
+#Input
+#To index the final bam file after remove duplicate; create the .bai file in directory of previous steps (remove duplicate)
+
+final_scaffold="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/final_scaffold.bam"
+
+samtools index $final_scaffold
+
+echo Finished
+echo $(date)
+
+----------------------------------------------------------------------------------------------------------
+#################################### Assembly statistic ##################################################
+----------------------------------------------------------------------------------------------------------
+
+
+##### Mapping statistic #######
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 1
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=1G
+
+#Load module
+module load samtools
+
+#Input
+#To calculate mapping statistic
+
+final_scaffold="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/final_scaffold.bam"
+
+samtools flagstat  $final_scaffold > mappingstats.txt
+
+echo Finished
+echo $(date)
+
+
+
+#### Qualimap ####
+
+
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -pe smp 8
+#$ -l h_rt=1:0:0
+#$ -l h_vmem=1G
+
+#Load module
+module load anaconda3
+conda activate qualimap
+
+#Input
+#To summarises the mapped alignments in much more detail than the mapping stats
+
+final_scaffold="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/3_remove_PCRduplicate/final_scaffold.bam"
+out_dir="/data/scratch/mpx586/Batesia_hypochlora/output3/samtools2/corrected/6_qualimap/"
+
+#Command
+
+qualimap bamqc -nt 8 -bam $final_scaffold -outdir $out_dir
+
+echo Finished
+echo $(date)
