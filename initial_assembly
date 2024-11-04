@@ -1,0 +1,35 @@
+### Running hifiasm
+
+#load the modules
+module load anaconda3
+conda activate hifiasm
+
+#Starting
+start=`date +%s`
+
+#input files
+hifiread_cell1="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell1/m64147e_220524_121034.hifi_reads.fastq.gz"
+hifiread_cell2="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell2/m64147e_220525_230842.hifi_reads.fastq.gz"
+
+#Command(s)
+# (1) using hifiasm with default parametters
+hifiasm -o df_hifi.asm \
+		-t ${NSLOTS} \
+		$hifiread_cell1 $hifiread_cell2
+
+# (2) create fasta file from previous running
+awk '/^S/ {print ">"$2"\n"$3}' df_hifi.asm.bp.p_ctg.gfa > df_hifi.asm.bp.p_ctg.fa
+
+
+
+### Sorting contigs by length
+
+# Load module
+module load anaconda3
+conda activate seqkit
+
+#Input
+df_hifi_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifiasm/df_hifi.asm.bp.p_ctg.fa"
+
+#Command
+seqkit sort --by-length --reverse $df_hifi_asm > sorted_df_asm.fa
