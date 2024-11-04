@@ -33,3 +33,40 @@ df_hifi_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifias
 
 #Command
 seqkit sort --by-length --reverse $df_hifi_asm > sorted_df_asm.fa
+
+
+### assembly statistic
+
+# Load module
+module load anaconda3
+conda activate bbmap
+
+# Input(s)
+sorted_df_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifiasm/sorted_df_asm.fa"
+
+# command
+stats.sh in=$sorted_df_asm gc=gc.txt gcformat=4
+
+### completeness assessment
+
+# Load necessary modules
+module load anaconda3/2023.03
+conda activate busco
+
+# Set the input and output directories
+input_dir="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifiasm/"
+output_dir="/busco_genome_v01/"
+
+# Set the desired BUSCO parameters
+genome="sorted_df_asm.fa"  								# genome in FASTA format
+lineage="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit/busco/"  		# BUSCO lineage database
+mode="genome"  										# Set to "genome" for genome analysis
+
+# command
+busco -i "${input_dir}/${genome}" \
+      -o "${output_dir}" \
+      -l "lepidoptera_odb10" \
+      -m "${mode}" \
+      -c ${NSLOTS} \
+      -f
+
