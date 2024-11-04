@@ -1,0 +1,38 @@
+### check quality of reads
+
+#Load module fastqc
+module load fastqc
+
+#Input files
+hifiread_cell1="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell1/m64147e_220524_121034.hifi_reads.fastq.gz"
+hifiread_cell2="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell2/m64147e_220525_230842.hifi_reads.fastq.gz"
+illumina_read1="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/Illuminia/4-04_OOSTRA_20220121_ATGTTGCCAC-TAGAAGCCAT_L002_R1_001.fastq.gz"
+illumina_read2="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/Illuminia/4-04_OOSTRA_20220121_ATGTTGCCAC-TAGAAGCCAT_L002_R2_001.fastq.gz"
+
+# Command
+fastqc $hifiread_cell1 $hifiread_cell2 $illumina_read1 $illumina_read2 \
+		-o /data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/bf_trimming/	#output folder
+
+
+### trimming adapters on Illumina short reads
+
+# Load module
+module load trimmomatic
+
+#input files
+illumina_read1="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/Illuminia/4-04_OOSTRA_20220121_ATGTTGCCAC-TAGAAGCCAT_L002_R1_001.fastq.gz"
+illumina_read2="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/Illuminia/4-04_OOSTRA_20220121_ATGTTGCCAC-TAGAAGCCAT_L002_R2_001.fastq.gz"
+
+#output files
+outputpaired_read1="/data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/trimming_codes/paired_r1_Batesia_hypochlora_16062023.fastq.gz"
+outputpaired_read2="/data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/trimming_codes/paired_r2_Batesia_hypochlora_16062023.fastq.gz"
+outputunpaired_read1="/data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/trimming_codes/unpaired_r1_Batesia_hypochlora_16062023.fastq.gz"
+outputunpaired_read2="/data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/trimming_codes/unpaired_r2_Batesia_hypochlora_16062023.fastq.gz"
+
+#Command:
+java -jar /share/apps/centos7/trimmomatic/0.36/trimmomatic-0.36.jar \
+			PE $illumina_read1 $illumina_read2 \
+			$outputpaired_read1 $outputunpaired_read1 $outputpaired_read2 $outputunpaired_read2 \
+			ILLUMINACLIP:/share/apps/centos7/trimmomatic/0.36/adapters/TruSeq3-PE.fa:2:30:10 \
+			LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 \
+			MINLEN:36
