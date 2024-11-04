@@ -1,1 +1,62 @@
+### Alignment Pacbio long reads to genome v0.1, then convert to a bam file
 
+#Load the module(s)
+module load anaconda3
+conda activate minimap2
+
+#Input(s)
+sorted_hifiasm_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
+hifiread_cell1="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell1/m64147e_220524_121034.hifi_reads.fastq.gz"
+hifiread_cell2="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/HiFi/Cell2/m64147e_220525_230842.hifi_reads.fastq.gz"
+
+# Command(s)
+#alignment sr to genome v0.1, then get sam for genome v0.2
+minimap2 -ax map-hifi $sorted_hifiasm_ctg $hifiread_cell1 $hifiread_cell2 > aln_lr_to_genome_v01.sam
+
+# convert a sam file to a bam file
+aln_lr_to_v01="/data/scratch/mpx586/Batesia_hypochlora/outputs3/aln_sr_to_ver01/aln_lr_to_genome_v01.sam"
+
+samtools view -@ 1 -b -S -o aln_lr_to_v01.bam \
+		$aln_lr_to_v01  
+
+### Alignment Illumina short reads to genome v0.1, then convert to a bam file
+
+#Load the module(s)
+module load anaconda3
+conda activate minimap2
+
+#Input(s)
+sorted_hifiasm_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
+read1_trimmed="/data/scratch/mpx586/Batesia_hypochlora/outputs_illumina/trimming/paired_R1_B_hypochlora.fastq.gz"
+read2_trimmed="/data/scratch/mpx586/Batesia_hypochlora/outputs_illumina/trimming/paired_R2_B_hypochlora.fastq.gz"
+
+#Command(s)
+#alignment sr to genome v0.1, then get sam for genome v0.2
+minimap2 -ax sr $sorted_hifiasm_ctg $read1_trimmed $read2_trimmed > aln_sr_to_ver01.sam
+
+# convert a sam file to a bam file
+aln_sr_to_ver01="/data/scratch/mpx586/Batesia_hypochlora/outputs3/aln_sr_to_ver01/aln_sr_to_ver01.sam"
+
+# Commands
+samtools view -@ 1 -b -S -o aln_sr_to_ver01.bam \
+		$aln_sr_to_ver01  
+
+### sorting and indexing bam file(s)
+#Load module
+module load anaconda3
+conda activate /data/scratch/mpx586/github/samtools/
+
+#Input(s)
+polished_sr_genome_ver02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_sr_to_ver01.bam"
+aln_lr_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_lr_to_v01.bam"
+# Commands
+#bam file is need to be sorted before indexing
+samtools sort $polished_sr_genome_ver02_bam -o sorted_sr_genome_v02.bam
+samtools sort $aln_lr_v02_bam -o sorted_lr_aln_genome_v02.bam
+
+#indexing sorted bam file of polished genome (v0.2), which we got by alignment sr to genome v0.1
+sorted_sr_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_sr_genome_v02.bam"
+sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_lr_aln_genome_v02.bam"
+
+samtools index $sorted_sr_genome_v02_bam
+samtools index $sorted_lr_aln_genome_v02_bam
