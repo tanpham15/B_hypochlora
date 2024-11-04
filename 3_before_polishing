@@ -49,6 +49,7 @@ conda activate /data/scratch/mpx586/github/samtools/
 #Input(s)
 polished_sr_genome_ver02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_sr_to_ver01.bam"
 aln_lr_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_lr_to_v01.bam"
+
 # Commands
 #bam file is need to be sorted before indexing
 samtools sort $polished_sr_genome_ver02_bam -o sorted_sr_genome_v02.bam
@@ -60,3 +61,15 @@ sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/s
 
 samtools index $sorted_sr_genome_v02_bam
 samtools index $sorted_lr_aln_genome_v02_bam
+
+### Indexing genome v0.1
+#Load module
+module load anaconda3
+conda activate /data/scratch/mpx586/github/samtools
+
+#Input(s)
+
+sorted_hifiasm_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
+
+#Command
+samtools faidx $sorted_hifiasm_ctg
