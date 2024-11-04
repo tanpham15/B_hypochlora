@@ -1,1 +1,62 @@
+### Polishing genome with pilon
+
+# Load module(s):
+module load samtools
+module load anaconda3
+conda activate pilon
+
+# Input(s):
+sorted_df_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
+sort_coord_aln_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/s2_sort_coord/sort_coord_aln_ctg.bam"
+sorted_lr_aln_genome_v02="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_lr_aln_genome_v02.bam"
+outdir="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr"
+
+# Commands
+samtools index $sort_coord_aln_ctg
+
+pilon -Xmx78G --genome $sorted_df_asm \
+	--bam $sort_coord_aln_ctg \
+	--bam $sorted_lr_aln_genome_v02 \
+	--output polishing_both_sr_lr_v02 \
+	--outdir $outdir \
+	--changes \
+	--tracks \
+	--vcfqe \
+	--fix gaps,local,breaks \
+	--minmq 30 \
+	--minqual 30
+
+
+### assembly statistic
+
+# Load module
+module load anaconda3
+conda activate bbmap
+
+# Input(s)
+genome_v02="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/polishing_both_sr_lr_v02.fasta"
+
+# command
+stats.sh in=$genome_v02 gc=gc.txt gcformat=4
+
+### completeness assessment
+
+# Load necessary modules
+module load anaconda3/2023.03
+conda activate busco
+
+# Input(s)
+input_dir="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/"
+output_dir="/busco_genome_v02/"
+genome="polishing_both_sr_lr_v02.fasta"  # genome in FASTA format
+lineage="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit/busco/"  # BUSCO lineage database
+mode="genome"  # Set to "genome" for genome analysis
+
+# command
+busco -i "${input_dir}/${genome}" \
+      -o "${output_dir}" \
+      -l "lepidoptera_odb10" \
+      -m "${mode}" \
+      -c ${NSLOTS} \
+      -f
 
