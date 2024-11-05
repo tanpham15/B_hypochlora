@@ -1,0 +1,70 @@
+### Create database in yaml: nano B_hypochlora.yaml
+
+assembly:
+  accession: Vicencio Oostra
+  alias: V.O
+  bioproject: 121034_230842
+  biosample: m64147
+  record_type: scaffold
+taxon:
+  name: Batesia hypochlora
+  NCBI ID: 127305
+  phylum: Arthropoda
+
+
+### Create Blobdir
+
+# Load package
+module load anaconda3
+conda activate btk
+
+#Inputs:
+final_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/polishing_both_sr_lr_v02.fasta"
+B_hypochlora_meta="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit2/B_hypochlora.yaml"
+taxdump="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit2/taxdump/"
+
+#Command:
+blobtools add \
+    --create /data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit2/Blobdir/ \
+    --taxid 127305 \
+    --fasta $final_scaffold_fa \
+    --taxdump $taxdump \
+    --meta $B_hypochlora_meta
+
+
+# Running ncbi blastn
+
+# Load package
+module load blast+/2.11.0
+
+#Inputs
+final_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/polishing_both_sr_lr_v02.fasta"
+
+#command
+blastn -db /data/PublicDataSets/shared_dbs/nt/2023-02-21/nt \
+       -task megablast \
+       -query $final_scaf \
+       -outfmt "6 qseqid staxids bitscore std" \
+       -max_target_seqs 10 \
+       -max_hsps 1 \
+       -evalue 1e-25 \
+       -num_threads ${NSLOTS} \
+       -out "B_hypochlora.megablast.out"
+
+
+### Adding coverage and blast hit
+# Load package
+module load anaconda3/2023.03
+conda activate btk
+
+#Input
+Blobdir_bestsum="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit/Blobdir_bestsum/"
+sorted_sr_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_sr_aln_genome_v02.bam"
+sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_lr_aln_genome_v02.bam"
+
+#Command:
+
+blobtools add \
+    --cov $sorted_sr_genome_v02_bam \
+    --cov $sorted_lr_aln_genome_v02_bam \
+    $Blobdir_bestsum
