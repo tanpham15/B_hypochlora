@@ -11,6 +11,10 @@ singularity exec --bind /data/scratch/mpx586/github/mitohifi/:/data/scratch/mpx5
 	--outfolder /data/scratch/mpx586/Batesia_hypochlora/mitochondrial_download/ \
 	--min_length 14000
 
+---------------------------------------------------------------------------------------------------------------
+# it downloaded NC_025551.1.[gb,fasta] as the most closest related mitochondrial genome to Batesia hypochlora
+---------------------------------------------------------------------------------------------------------------
+
 # Inputs
 clean_renamed_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/clean_renamed_scaf.fa"
 mito_ref_fasta="/data/scratch/mpx586/Batesia_hypochlora/mitochondrial_download/NC_025551.1.fasta"
