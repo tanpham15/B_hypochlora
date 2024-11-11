@@ -1,0 +1,26 @@
+### Change headers of scaffolds after removing Wolbachia
+
+
+# Load necessary modules
+export PATH="/data/home/mpx586/git_modules/MitoHiFi/:$PATH"
+
+#Command
+singularity exec --bind /data/scratch/mpx586/github/mitohifi/:/data/scratch/mpx586/github/mitohifi/ docker://ghcr.io/marcelauliano/mitohifi:master \
+  findMitoReference.py \
+	--species "Batesia hypochlora" \
+	--outfolder /data/scratch/mpx586/Batesia_hypochlora/mitochondrial_download/ \
+	--min_length 14000
+
+# Inputs
+clean_renamed_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/clean_renamed_scaf.fa"
+mito_ref_fasta="/data/scratch/mpx586/Batesia_hypochlora/mitochondrial_download/NC_025551.1.fasta"
+mito_ref_gb="/data/scratch/mpx586/Batesia_hypochlora/mitochondrial_download/NC_025551.1.gb"
+
+# command:
+singularity exec --bind /data/scratch/mpx586/github/mitohifi/:/data/scratch/mpx586/github/mitohifi/ docker://ghcr.io/marcelauliano/mitohifi:master \
+  mitohifi.py \
+	-c $clean_renamed_scaf \
+	-f $mito_ref_fasta \
+	-g $mito_ref_gb \
+	-o 5 \
+	-t ${NSLOTS} 
