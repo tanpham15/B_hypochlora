@@ -15,7 +15,6 @@ fastqc $hifiread_cell1 $hifiread_cell2 $illumina_read1 $illumina_read2 \
 
 
 ### trimming adapters on Illumina short reads
-
 # Load module
 module load trimmomatic
 
