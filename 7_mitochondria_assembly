@@ -1,5 +1,5 @@
 ### Change headers of scaffolds after removing Wolbachia
-
+awk '/^>/ {gsub(/[^a-zA-Z0-9]/,""); printf(">%s\n", "scaf" ++i); next} {print}' /polishing_both_sr_lr/rm_wolbachia.fa > /polishing_both_sr_lr/clean_renamed_scaf
 
 # Load necessary modules
 export PATH="/data/home/mpx586/git_modules/MitoHiFi/:$PATH"
