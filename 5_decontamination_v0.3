@@ -52,19 +52,70 @@ blastn -db /data/PublicDataSets/shared_dbs/nt/2023-02-21/nt \
        -out "B_hypochlora.megablast.out"
 
 
-### Adding coverage and blast hit
+### Align Illumina short reads to genome version 0.2
+#Load the module
+module load anaconda3
+conda activate minimap2
+
+#Input(s)
+polishing_both_sr_lr_v02="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/polishing_both_sr_lr_v02.fasta"
+read1_trimmed="/data/scratch/mpx586/Batesia_hypochlora/outputs_illumina/trimming/paired_R1_B_hypochlora.fastq.gz"
+read2_trimmed="/data/scratch/mpx586/Batesia_hypochlora/outputs_illumina/trimming/paired_R2_B_hypochlora.fastq.gz"
+
+#Command(s)
+#alignment sr to genome v0.2, then get a sam file
+minimap2 -ax sr $polishing_both_sr_lr_v02 $read1_trimmed $read2_trimmed > aln_sr_to_v02.sam
+
+#convert sam file to bam file and index bam file
+#Load the module
+conda activate /data/scratch/mpx586/github/samtools/
+
+#Command(s)
+samtools sort  aln_sr_to_v02.sam -O bam -o aln_sr_to_v02.bam
+samtools index -b aln_sr_to_v02.bam
+
+
+### Add coverage, busco, 
+
 # Load package
-module load anaconda3/2023.03
+module load anaconda3
 conda activate btk
 
 #Input
 Blobdir_bestsum="/data/scratch/mpx586/Batesia_hypochlora/outputs3/blobtoolkit/Blobdir_bestsum/"
-sorted_sr_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_sr_aln_genome_v02.bam"
-sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_lr_aln_genome_v02.bam"
+aln_sr_to_v02="/data/scratch/mpx586/Batesia_hypochlora/outputs3/aln_sr_to_v02/aln_sr_to_v02.bam"
+busco_table="/data/scratch/mpx586/Batesia_hypochlora/outputs3/completeness/busco/final_scaf/busco_genome_v02/run_lepidoptera_odb10/full_table.tsv"
 
 #Command:
+blobtools add \
+    --cov $aln_sr_to_v02 \
+    --busco $busco_table \
+    $Blobdir_bestsum
 
 blobtools add \
-    --cov $sorted_sr_genome_v02_bam \
-    --cov $sorted_lr_aln_genome_v02_bam \
-    $Blobdir_bestsum
+    --hits $B_hypochlora_ncbi_blastn \
+    --hits-cols 1=qseqid,2=staxids,3=bitscore,5=sseqid,10=qstart,11=qend,14=evalue \
+    --taxrule bestsumorder \
+    --taxdump $taxdump \
+    --evalue 1e-50 \
+    --hit-count 10 \
+    --replace $Blobdir_bestsum
+
+---------------------------------------------------------------------------------------------------------------
+# I used website https://usegalaxy.eu/ to activate interation tools for Blobtookkit View
+# To prepare the dataset, I used command bellow (compress file without directory structure) 
+
+tar -czf polished_sr_lr_blob.tar.gz -C Blobdir_bestsum/ .
+
+---------------------------------------------------------------------------------------------------------------
+# Using filter function of Blobtookkit View (on usegalaxy.eu), I identified sequences with phylum matches Pseudomonadota (only Wolbachia)
+# Command bellow to separate Wolbachia sequences for futher analysis
+
+awk 'BEGIN {while((getline < "contig_names.txt") > 0) names[$1] = 1} 
+     /^>/ {header = substr($0, 2); if (header in names) print $0; next} 
+     {if (header in names) print $0}' polishing_both_sr_lr_v02.fasta > Wolbachia.fa
+
+awk 'BEGIN {while((getline < "contig_names.txt") > 0) names[$1] = 1} 
+     /^>/ {header = substr($0, 2); if (!(header in names)) print $0; next} 
+     {if (!(header in names)) print $0}' polishing_both_sr_lr_v02.fasta > rm_wolbachia.fa
+
