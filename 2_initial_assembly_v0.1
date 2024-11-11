@@ -1,5 +1,4 @@
 ### Running hifiasm
-
 #load the modules
 module load anaconda3
 conda activate hifiasm
@@ -21,9 +20,7 @@ hifiasm -o df_hifi.asm \
 awk '/^S/ {print ">"$2"\n"$3}' df_hifi.asm.bp.p_ctg.gfa > df_hifi.asm.bp.p_ctg.fa
 
 
-
 ### Sorting contigs by length
-
 # Load module
 module load anaconda3
 conda activate seqkit
