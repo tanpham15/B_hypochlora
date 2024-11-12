@@ -41,6 +41,7 @@ aln_sr_to_ver01="/data/scratch/mpx586/Batesia_hypochlora/outputs3/aln_sr_to_ver0
 samtools view -@ 1 -b -S -o aln_sr_to_ver01.bam \
 		$aln_sr_to_ver01  
 
+
 ### sorting and indexing bam file(s)
 
 #Load module
@@ -62,6 +63,7 @@ sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/s
 
 samtools index -bc $sorted_sr_genome_v02_bam
 samtools index -bc $sorted_lr_aln_genome_v02_bam
+
 
 ### Indexing genome v0.1
 
