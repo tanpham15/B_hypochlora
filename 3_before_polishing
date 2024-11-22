@@ -1,4 +1,4 @@
-### Alignment Pacbio long reads to genome v0.1, then convert to a bam file
+################ Alignment Pacbio long reads to genome v0.1, and get a sam file, then convert it to a bam file ################
 
 #Load the module(s)
 module load anaconda3
@@ -19,7 +19,7 @@ aln_lr_to_v01="/data/scratch/mpx586/Batesia_hypochlora/outputs3/aln_sr_to_ver01/
 samtools view -@ 1 -b -S -o aln_lr_to_v01.bam \
 		$aln_lr_to_v01  
 
-### Alignment Illumina short reads to genome v0.1, then convert to a bam file
+################ Alignment Illumina short reads to genome v0.1, and get a sam file, then convert it to a bam file ################
 
 #Load the module(s)
 module load anaconda3
@@ -42,7 +42,7 @@ samtools view -@ 1 -b -S -o aln_sr_to_ver01.bam \
 		$aln_sr_to_ver01  
 
 
-### sorting and indexing bam file(s)
+################ sorting and indexing inputs of polishing ################
 
 #Load module
 module load anaconda3
@@ -52,28 +52,17 @@ conda activate /data/scratch/mpx586/github/samtools/
 polished_sr_genome_ver02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_sr_to_ver01.bam"
 aln_lr_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/aln_lr_to_v01.bam"
 
-# Commands
+# Commands of sorting
 #bam file is need to be sorted before indexing
 samtools sort $polished_sr_genome_ver02_bam -o sorted_sr_genome_v02.bam
 samtools sort $aln_lr_v02_bam -o sorted_lr_aln_genome_v02.bam
 
-#indexing sorted bam file of polished genome (v0.2), which we got by alignment sr to genome v0.1
+# Commands of indexing
 sorted_sr_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_sr_aln_genome_v02.bam"
 sorted_lr_aln_genome_v02_bam="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samtools2/1_convert_to_bam/sorted_lr_aln_genome_v02.bam"
+sorted_hifiasm_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
 
 samtools index -bc $sorted_sr_genome_v02_bam
 samtools index -bc $sorted_lr_aln_genome_v02_bam
-
-
-### Indexing genome v0.1
-
-#Load module
-module load anaconda3
-conda activate /data/scratch/mpx586/github/samtools
-
-#Input(s)
-
-sorted_hifiasm_ctg="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly_ver01/sorted_df_asm.fa"
-
-#Command
 samtools faidx $sorted_hifiasm_ctg
+
