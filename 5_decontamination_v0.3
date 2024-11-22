@@ -1,4 +1,4 @@
-### Create database in yaml: nano B_hypochlora.yaml
+################ Create database in yaml: "nano B_hypochlora.yaml" ################
 
 assembly:
   accession: Vicencio Oostra
@@ -12,7 +12,7 @@ taxon:
   phylum: Arthropoda
 
 
-### Create Blobdir
+################ Create Blobdir ################
 
 # Load package
 module load anaconda3
@@ -32,8 +32,7 @@ blobtools add \
     --meta $B_hypochlora_meta
 
 
-# Running ncbi blastn
-
+################ Running ncbi blastn ################
 # Load package
 module load blast+/2.11.0
 
@@ -52,7 +51,7 @@ blastn -db /data/PublicDataSets/shared_dbs/nt/2023-02-21/nt \
        -out "B_hypochlora.megablast.out"
 
 
-### Align Illumina short reads to genome version 0.2
+################ Align Illumina short reads to genome version 0.2 ################
 #Load the module
 module load anaconda3
 conda activate minimap2
@@ -75,7 +74,7 @@ samtools sort  aln_sr_to_v02.sam -O bam -o aln_sr_to_v02.bam
 samtools index -b aln_sr_to_v02.bam
 
 
-### Add coverage, busco, 
+################ Add coverage, busco, blast hit ################
 
 # Load package
 module load anaconda3
