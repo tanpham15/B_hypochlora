@@ -7,7 +7,7 @@ conda activate repeat
 #Input files
 rm_mito_wol="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/rm_mito_wol_v04.fa"
 
-#Command
+# Command
 #create database of LTR
 BuildDatabase -name Batesia_nuc_genome_v05 $rm_mito_wol
 
@@ -21,11 +21,10 @@ RepeatModeler -database Batesia_nuc_genome_v05 \
 module load anaconda3
 mamba activate repeat
 
-#Inputs
+# Inputs
+# Using the genome version 04, copy it to a masking directory
 rm_mito_wol_v04="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/rm_mito_wol_v04.fa"
-
 cp $rm_mito_wol_v04 /data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta
-
 clean_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta"
 
 #create output folders
@@ -48,6 +47,7 @@ RepeatMasker -e ncbi \
             $clean_scaf \
             2>&1 | tee logs/01_simplemask.log
 
+# round 1: rename outputs
 rename fasta simple_mask 01_simple_out/clean_scaf*
 rename .masked .masked.fasta 01_simple_out/clean_scaf*
 
