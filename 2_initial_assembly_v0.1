@@ -1,4 +1,4 @@
-### Running hifiasm
+################ Run initial assembly using hifiasm ################
 #load the modules
 module load anaconda3
 conda activate hifiasm
@@ -20,7 +20,7 @@ hifiasm -o df_hifi.asm \
 awk '/^S/ {print ">"$2"\n"$3}' df_hifi.asm.bp.p_ctg.gfa > df_hifi.asm.bp.p_ctg.fa
 
 
-### Sorting contigs by length
+################ Sorting contigs by length ################
 # Load module
 module load anaconda3
 conda activate seqkit
@@ -32,7 +32,7 @@ df_hifi_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifias
 seqkit sort --by-length --reverse $df_hifi_asm > sorted_df_asm.fa
 
 
-### assembly statistic
+################ assembly statistic ################
 
 # Load module
 module load anaconda3
@@ -44,7 +44,7 @@ sorted_df_asm="/data/scratch/mpx586/Batesia_hypochlora/outputs3/assembly/df_hifi
 # command
 stats.sh in=$sorted_df_asm gc=gc.txt gcformat=4
 
-### completeness assessment
+################ completeness assessment ################
 
 # Load necessary modules
 module load anaconda3/2023.03
