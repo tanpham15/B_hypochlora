@@ -1,4 +1,4 @@
-### check quality of reads
+################ Check quality of reads ################
 
 #Load module fastqc
 module load fastqc
@@ -14,7 +14,7 @@ fastqc $hifiread_cell1 $hifiread_cell2 $illumina_read1 $illumina_read2 \
 		-o /data/scratch/mpx586/Batesia_hypochlora/outputs3/qltcontrol/bf_trimming/	#output folder
 
 
-### trimming adapters on Illumina short reads
+################ trimming adapters on Illumina short reads ################
 # Load module
 module load trimmomatic
 
