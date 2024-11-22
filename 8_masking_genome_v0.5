@@ -17,6 +17,10 @@ RepeatModeler -database Batesia_nuc_genome_v05 \
       -threads ${NSLOTS}
 
 ################ Running repeat masker  ################
+# Load module
+module load anaconda3
+mamba activate repeat
+
 #Inputs
 rm_mito_wol_v04="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/rm_mito_wol_v04.fa"
 
