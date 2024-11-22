@@ -1,4 +1,4 @@
-### Running repeat modeler
+################ Running repeat modeler ################
 
 #Load module
 module load anaconda3
@@ -13,5 +13,45 @@ BuildDatabase -name Batesia_nuc_genome_v05 $rm_mito_wol
 
 #Running RepeatModeler 
 RepeatModeler -database Batesia_nuc_genome_v05 \
-      -threads ${NSLOTS} \
-      -engine ncbi
+      -engine ncbi \
+      -threads ${NSLOTS}
+
+################ Running repeat masker  ################
+#Inputs
+rm_mito_wol_v04="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr/rm_mito_wol_v04.fa"
+
+cp $rm_mito_wol_v04 /data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta
+
+clean_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta"
+
+#create output folders
+mkdir -p logs 01_simple_out 02_insecta_outt 03_known_out 04_unknown_out
+
+#Running RepeatModeler 
+#Command
+#-e: engine, -a: Writes alignments in .align output file, -dir: output directory
+#-xsmal: Returns repetitive regions in lowercase (rest capitals) rather than mask, -noint: Only masks low complex/simple repeats (no interspersed repeats),
+
+# round 1: annotate/mask simple repeats
+REPCORES=$((NSLOTS / 4))
+
+RepeatMasker -e ncbi \
+            -a \
+            -noint \
+            -xsmall \
+            -dir 01_simple_out/ \
+            -pa ${REPCORES} \
+            $clean_scaf \
+            2>&1 | tee logs/01_simplemask.log
+
+rename fasta simple_mask 01_simple_out/clean_scaf*
+rename .masked .masked.fasta 01_simple_out/clean_scaf*
+
+# round 2: annotate/mask Insecta elements sourced from Repbase using output from 1st round of RepeatMasker
+RepeatMasker -pa ${REPCORES} -a -e ncbi -dir 02_insecta_out -nolow \
+            -species insecta \
+            01_simple_out/clean_scaf.simple_mask.masked.fasta 2>&1 | tee logs/02_insectamask.log
+
+# round 2: rename outputs
+rename simple_mask.masked.fasta insecta_mask 02_insecta_out/clean_scaf*
+rename .masked .masked.fasta 02_insecta_out/clean_scaf*
