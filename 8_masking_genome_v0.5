@@ -16,6 +16,59 @@ RepeatModeler -database Batesia_nuc_genome_v05 \
       -engine ncbi \
       -threads ${NSLOTS}
 
+
+################ Identifing known and unknown elements ################
+# Load module
+module load anaconda3
+mamba activate seqkit
+
+#Inputs
+Batesia_nuc_genome_v05_families="/data3/scratch/mpx586/Batesia_hypochlora/outputs3/masking/repeat_modeler/Batesia_nuc_genome_v05-families.fa"
+
+#Commands
+# Add add some sort of species code to the result of repeatmodeler
+cat $Batesia_nuc_genome_v05_families | seqkit fx2tab | awk '{ print "BatHyp1_"$0 }' | seqkit tab2fx > Batesia_nuc_genome_v05_families.prefix.fa
+
+#To identify known and unknown repeat elements
+cat Batesia_nuc_genome_v05_families.prefix.fa | seqkit fx2tab | grep "Unknown" | seqkit tab2fx > Batesia_nuc_genome_v05_families.prefix.fa.known
+cat Batesia_nuc_genome_v05_families.prefix.fa | seqkit fx2tab | grep -v "Unknown" | seqkit tab2fx > Batesia_nuc_genome_v05_families.prefix.fa.unknown
+
+echo number of known elements:
+grep -c ">" Batesia_nuc_genome_v05_families.prefix.fa.known
+
+echo number of unknown elements:
+grep -c ">" Batesia_nuc_genome_v05_families.prefix.fa.unknown
+
+################ Reclassify unknown elements with "Insecta" ################
+
+# Load module
+module load anaconda3
+mamba activate repeat
+
+#Inputs
+rep_modeler=/data3/scratch/mpx586/Batesia_hypochlora/outputs3/masking/repeat_modeler/
+
+export PATH=$PATH:/data/scratch/mpx586/github/GenomeAnnotation/
+export PATH="/data/home/mpx586/.conda/envs/bioawk/bin/:$PATH"
+export PATH="/data/home/mpx586/.conda/envs/seqkit/bin/:$PATH"
+
+#Command
+#Round 1:
+repclassifier -t ${NSLOTS} -d insecta \
+              -u $rep_modeler/clean_final_polished-families.prefix.fa.unknown \
+              -k $rep_modeler/clean_final_polished-families.prefix.fa.known \
+              -a $rep_modeler/clean_final_polished-families.prefix.fa.known \
+              -o round-1_Repbaseinsecta-self
+
+#Round2:
+repclassifier -t ${NSLOTS} \
+              -u $rep_modeler/round-1_Repbaseinsecta-self/round-1_Repbaseinsecta-self.unknown \
+              -k $rep_modeler/round-1_Repbaseinsecta-self/round-1_Repbaseinsecta-self.known \
+              -a $rep_modeler/round-1_Repbaseinsecta-self/round-1_Repbaseinsecta-self.known \
+              -o round-2_Repbaseinsecta-self
+
+
+
 ################ Running repeat masker  ################
 # Load module
 module load anaconda3
@@ -59,3 +112,55 @@ RepeatMasker -pa ${REPCORES} -a -e ncbi -dir 02_insecta_out -nolow \
 # round 2: rename outputs
 rename simple_mask.masked.fasta insecta_mask 02_insecta_out/clean_scaf*
 rename .masked .masked.fasta 02_insecta_out/clean_scaf*
+
+# round 3: annotate/mask known elements sourced from species-specific de novo repeat library using output froom 2nd round of RepeatMasker
+RepeatMasker -pa 2 -a -e ncbi -dir 03_known_out -nolow \
+            -lib ../repeat_modeler/round-2_Repbaseinsecta-self/round-2_Repbaseinsecta-self.known \
+            02_insecta_out/clean_scaf.insecta_mask.masked.fasta 2>&1 | tee logs/03_knownmask.log
+
+# round 3: rename outputs
+rename insecta_mask.masked.fasta known_mask 03_known_out/clean_scaf*
+rename .masked .masked.fasta 03_known_out/clean_scaf*
+
+# round 4: annotate/mask unknown elements sourced from species-specific de novo repeat library using output froom 3nd round of RepeatMasker
+RepeatMasker -pa 2 -a -e ncbi -dir 04_unknown_out -nolow \
+            -lib ../repeat_modeler/round-2_Repbaseinsecta-self/round-2_Repbaseinsecta-self.unknown \
+            03_known_out/clean_scaf.known_mask.masked.fasta 2>&1 | tee logs/04_unknownmask.log
+
+# round 4: rename outputs
+rename known_mask.masked.fasta unknown_mask 04_unknown_out/clean_scaf*
+rename .masked .masked.fasta 04_unknown_out/clean_scaf*
+
+# combine the results
+# create directory for full results
+mkdir -p 05_full_out
+
+# combine full RepeatMasker result files - .cat.gz
+cat 01_simple_out/clean_scaf.simple_mask.cat.gz \
+    02_insecta_out/clean_scaf.insecta_mask.cat.gz \
+    03_known_out/clean_scaf.known_mask.cat.gz \
+    04_unknown_out/clean_scaf.unknown_mask.cat.gz \
+    > 05_full_out/clean_scaf.full_mask.cat.gz
+
+# combine RepeatMasker tabular files for all repeats - .out
+cat 01_simple_out/clean_scaf.simple_mask.out \
+    <(cat 02_insecta_out/clean_scaf.insecta_mask.out | tail -n +4) \
+    <(cat 03_known_out/clean_scaf.known_mask.out | tail -n +4) \
+    <(cat 04_unknown_out/clean_scaf.unknown_mask.out | tail -n +4) \
+    > 05_full_out/clean_scaf.full_mask.out
+
+# copy RepeatMasker tabular files for simple repeats - .out
+cat 01_simple_out/clean_scaf.simple_mask.out > 05_full_out/clean_scaf.simple_mask.out
+
+# combine RepeatMasker tabular files for complex, interspersed repeats - .out
+cat 02_insecta_out/clean_scaf.insecta_mask.out \
+    <(cat 03_known_out/clean_scaf.known_mask.out | tail -n +4) \
+    <(cat 04_unknown_out/clean_scaf.unknown_mask.out | tail -n +4) \
+    > 05_full_out/clean_scaf.complex_mask.out
+
+# combine RepeatMasker repeat alignments for all repeats - .align
+cat 01_simple_out/clean_scaf.simple_mask.align \
+    02_insecta_out/clean_scaf.insecta_mask.align \
+    03_known_out/clean_scaf.known_mask.align \
+    04_unknown_out/clean_scaf.unknown_mask.align \
+    > 05_full_out/clean_scaf.full_mask.align
