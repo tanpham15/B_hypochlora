@@ -1,4 +1,4 @@
-################ Check quality of reads ################
+################ Check quality of DNA reads ################
 
 #Load module fastqc
 module load fastqc
