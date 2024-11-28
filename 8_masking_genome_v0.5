@@ -72,7 +72,7 @@ repclassifier -t ${NSLOTS} \
 ################ Running repeat masker  ################
 # Load module
 module load anaconda3
-mamba activate repeat
+conda activate /data/scratch/mpx586/github/repeat2
 
 # Inputs
 # Using the genome version 04, copy it to a masking directory
@@ -81,7 +81,7 @@ cp $rm_mito_wol_v04 /data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/cle
 clean_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta"
 
 #create output folders
-mkdir -p logs 01_simple_out 02_insecta_outt 03_known_out 04_unknown_out
+mkdir -p logs 01_simple_out 02_insecta_out 03_known_out 04_unknown_out
 
 #Running RepeatModeler 
 #Command
@@ -114,7 +114,7 @@ rename simple_mask.masked.fasta insecta_mask 02_insecta_out/clean_scaf*
 rename .masked .masked.fasta 02_insecta_out/clean_scaf*
 
 # round 3: annotate/mask known elements sourced from species-specific de novo repeat library using output froom 2nd round of RepeatMasker
-RepeatMasker -pa 2 -a -e ncbi -dir 03_known_out -nolow \
+RepeatMasker -pa ${REPCORES} -a -e ncbi -dir 03_known_out -nolow \
             -lib ../repeat_modeler/round-2_Repbaseinsecta-self/round-2_Repbaseinsecta-self.known \
             02_insecta_out/clean_scaf.insecta_mask.masked.fasta 2>&1 | tee logs/03_knownmask.log
 
@@ -123,7 +123,7 @@ rename insecta_mask.masked.fasta known_mask 03_known_out/clean_scaf*
 rename .masked .masked.fasta 03_known_out/clean_scaf*
 
 # round 4: annotate/mask unknown elements sourced from species-specific de novo repeat library using output froom 3nd round of RepeatMasker
-RepeatMasker -pa 2 -a -e ncbi -dir 04_unknown_out -nolow \
+RepeatMasker -pa ${REPCORES} -a -e ncbi -dir 04_unknown_out -nolow \
             -lib ../repeat_modeler/round-2_Repbaseinsecta-self/round-2_Repbaseinsecta-self.unknown \
             03_known_out/clean_scaf.known_mask.masked.fasta 2>&1 | tee logs/04_unknownmask.log
 
@@ -164,3 +164,31 @@ cat 01_simple_out/clean_scaf.simple_mask.align \
     03_known_out/clean_scaf.known_mask.align \
     04_unknown_out/clean_scaf.unknown_mask.align \
     > 05_full_out/clean_scaf.full_mask.align
+
+################ Convert to gff3 and fasta  ################
+# Load module
+module load anaconda3
+conda activate /data/scratch/mpx586/github/repeat2
+
+export PATH=$PATH:/data/scratch/mpx586/github/GenomeAnnotation/
+
+# commands
+# use Daren's custom script to convert .out to .gff3 for all repeats, simple repeats only, and complex repeats only
+
+rmOutToGFF3custom -o 05_full_out/clean_scaf.full_mask.out > 05_full_out/clean_scaf.full_mask.gff3
+rmOutToGFF3custom -o 05_full_out/clean_scaf.simple_mask.out > 05_full_out/clean_scaf.simple_mask.gff3
+rmOutToGFF3custom -o 05_full_out/clean_scaf.complex_mask.out > 05_full_out/clean_scaf.complex_mask.gff3
+
+# Load module
+module load bedtools
+clean_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.fasta"
+
+# commands
+# create simple repeat soft-masked genome
+bedtools maskfasta -soft -fi $clean_scaf -bed 05_full_out/clean_scaf.simple_mask.gff3 \
+-fo 05_full_out/clean_scaf.simple_mask.soft.fasta
+
+# create complex repeat hard-masked genome
+bedtools maskfasta -fi 05_full_out/clean_scaf.simple_mask.soft.fasta \
+-bed 05_full_out/clean_scaf.complex_mask.gff3 \
+-fo 05_full_out/clean_scaf.simple_mask.soft.complex_mask.hard.fasta
