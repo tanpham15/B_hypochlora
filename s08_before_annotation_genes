@@ -27,3 +27,14 @@ lima --isoseq \
 isoseq refine trimmed_RNA_reads.NEB_5p--NEB_Clontech_3p.bam $adapter_sequences adapter_sequences_nc.bam
 
 isoseq cluster adapter_sequences_nc.bam clustered_RNA_Batesia.bam --verbose --use-qvs
+
+
+#Load the module
+module load anaconda3
+conda activate minimap2
+
+#Input
+softmask_genome="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/repeat_masker/05_full_out/clean_scaf.simple_mask.soft.fasta"
+hq_Batesia_RNA="/data/scratch/mpx586/Batesia_hypochlora/raw_reads/isoseq/ISOFORMS/hq_transcripts.fasta"
+#Script
+minimap2 -ax splice:hq -uf $softmask_genome $hq_Batesia_RNA > aln_rna.sam
