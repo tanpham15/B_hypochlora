@@ -1,1 +1,189 @@
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(tidyquant)
+library(ggdist)
+#library(ggthemes)
+#library(stringr)
+
+#Do not include working directory when submit
+setwd("D:/Documents/R_codes/Batesia")
+
+raw_full_mask <- read_table("repeatmasker/clean_scaf.full_mask.out",
+                            comment = "*", skip = 1)
+
+header_name = c('SW score', 'perc div.','perc del.', 'perc ins.', 'scf', 'q_str', 
+           'q_end', 'q_left','plus', 'repeat_match', 'repeat_family', 'repeat_str', 
+           'repeat_end', 'r_left')
+
+colnames(raw_full_mask) <- header_name
+
+#find the unique TE families from result in mask.out
+unique_repeat_families <- unique(raw_full_mask$repeat_family)
+
+print(unique_repeat_families)
+
+###########################################################
+#working with raw data
+#Numeric representation for repeat family
+#raw_full_mask$family_numeric <- match(raw_full_mask$repeat_family, unique_repeat_families)
+#if working without group unique TE family into TE superfamilies, replace ....
+###########################################################
+
+
+# Classify the superfamily into the 8 categories
+superfamily_full_mask <- mutate(raw_full_mask, superfamily = case_when(
+  repeat_family %in% c("LINE", "LINE/R1", "LINE/I-Jockey", "LINE/CR1-Zenon", "LINE/RTE-BovB", "LINE/R1-LOA", 
+                       "LINE/L2", "LINE/I", "LINE/Penelope", "LINE/RTE", "LINE/CR1", "LINE/R2-Hero", 
+                       "LINE/Proto2", "LINE/CRE", "LINE/L1", "LINE/RTE-X", "LINE/Dong-R4", "LINE/RTE-RTE") ~ "LINEs",
+  
+  repeat_family %in% c("SINE", "SINE/tRNA", "SINE/5S", "SINE/tRNA-Deu-L2", "SINE/tRNA-V-CR1", 
+                       "SINE/tRNA-Deu-RTE", "SINE/U-L1", "SINE/U", "SINE/tRNA-Deu", "SINE/tRNA-CR1") ~ "SINEs",
+  
+  repeat_family %in% c("LTR/Gypsy", "LTR/Copia", "LTR/Pao", "LTR/DIRS") ~ "LTR Retrotransposons",
+  
+  repeat_family %in% c("DNA/TcMar-Mariner", "DNA/hAT-Tip100", "DNA/hAT-Ac", "DNA/hAT-Tag1", "DNA/CMC-EnSpm", 
+                       "DNA/CMC-Transib", "DNA/PIF-Harbinger", "DNA/Academ-1", "DNA/PiggyBac", "DNA/Zisupton", 
+                       "DNA/PIF-ISL2EU", "DNA/TcMar-Fot1", "DNA/hAT-Charlie", "DNA/P", "DNA/hAT", "DNA/Sola-1", 
+                       "DNA/TcMar", "DNA/hAT-hATm", "DNA/hAT-hATx", "DNA/hAT-Blackjack", "DNA/TcMar-Pogo", 
+                       "DNA/Zator", "DNA/MULE-MuDR", "DNA/TcMar-m44", "DNA/Kolobok-Hydra", "DNA-TcMar", 
+                       "DNA/TcMar-Tc1", "DNA/TcMar-Tigger", "DNA/CMC-Chapaev-3", "DNA/Sola-2", "DNA", 
+                       "DNA/hAT-Charlie", "DNA/hAT-hobo") ~ "DNA Transposons",
+  
+  repeat_family %in% c("RC/Helitron", "RC/Helitron-2") ~ "Helitrons",
+  
+  repeat_family %in% c("Simple_repeat") ~ "Simple Repeat",
+  
+  repeat_family %in% c("Low_complexity") ~ "Low Complexity",
+  
+  repeat_family %in% c("Unknown") ~ "Unknown",
+  
+  TRUE ~ "Unknown"  # Assign "Unknown" for any unexpected cases
+))
+
+#find and print out the unique TE superfamilies
+unique_superfamily <- unique(superfamily_full_mask$superfamily)
+print(unique_superfamily)
+
+# Numeric encoding of the superfamily into 8 categories
+superfamily_full_mask$numeric_super <- case_when(
+  superfamily_full_mask$superfamily == "LINEs" ~ 1,
+  superfamily_full_mask$superfamily == "SINEs" ~ 2,
+  superfamily_full_mask$superfamily == "LTR Retrotransposons" ~ 3,
+  superfamily_full_mask$superfamily == "DNA Transposons" ~ 4,
+  superfamily_full_mask$superfamily == "Helitrons" ~ 5,
+  superfamily_full_mask$superfamily == "Simple Repeat" ~ 6,
+  superfamily_full_mask$superfamily == "Low Complexity" ~ 7,
+  superfamily_full_mask$superfamily == "Unknown" ~ 8,
+  TRUE ~ NA_real_  # In case of any unexpected value, assign NA
+)
+
+#check NA values
+#na_rows <- superfamily_full_mask[is.na(superfamily_full_mask$numeric_super), ]
+
+superfamily_full_mask$TE_len <- superfamily_full_mask$q_end - superfamily_full_mask$q_str + 1
+summary(superfamily_full_mask$TE_len)
+
+
+# Calculation for each unique repeat family
+contig_length <- 395788444 #length of genome fasta, the value get it from 
+group_summary <- superfamily_full_mask %>%
+  group_by(superfamily) %>%
+  summarize(
+    count = n(),
+    sum_value = sum(TE_len),
+    percentage = sum_value / contig_length * 100,
+    mean_value = mean(TE_len),
+    median_value = median(TE_len),
+    sd = sd(TE_len),
+    min_value = min(TE_len),
+    max_value = max(TE_len)
+  )
+
+#Raincloud plots
+superfamily_full_mask %>%
+  ggplot(aes(x = factor(numeric_super), 
+             y = log(TE_len), 
+             fill = factor(numeric_super))) +
+  stat_halfeye(
+    adjust = 0.5,
+    justification = -0.2,
+    .width = 0.8,
+    point_colour = NA
+  ) +
+  geom_boxplot(
+    width = 0.3,
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  scale_fill_tq() +
+  scale_x_discrete(labels = unique_superfamily) +
+  theme_tq() +
+  labs(
+    x = "Family group",
+    y = "Length (natural log bp)",
+    fill = "Group"
+  ) +
+  coord_flip() +
+  theme(
+    axis.text.x = element_text(hjust = 0, size = 14),  # Increase font size for x-axis labels
+    axis.text.y = element_text(size = 14),              # Increase font size for y-axis labels
+    axis.title.x = element_text(size = 16),             # Increase font size for x-axis title
+    axis.title.y = element_text(size = 16),             # Increase font size for y-axis title
+    legend.text = element_text(size = 14),              # Increase font size for legend text
+    legend.title = element_text(size = 16),             # Increase font size for legend title
+    plot.title = element_text(size = 18, face = "bold") # Increase font size for plot title (if any)
+  )
+
+###############################################################################################################################################################
+# Fig : functional genes 
+
+
+# Load libraries
+library(readxl)
+library(dplyr)
+library(DOSE)
+library(pathview)
+library(clusterProfiler)
+
+#Do not include working directory when submit
+
+#Set working directory
+setwd("D:/Documents/R_codes/Batesia")
+
+out_emapper_annotations <- read_excel("functional_annotation/out.emapper.annotations.xlsx")
+
+head(out_emapper_annotations)
+summary(out_emapper_annotations)
+
+out_emapper_annotations$GOs_count <- sapply(out_emapper_annotations$GOs, function(go_str) {
+  if (is.na(go_str) || go_str == "-") {
+    return(0)  # If GOs is NA or "-", set count to 0
+  } else {
+    go_terms <- strsplit(go_str, ",")[[1]]  # Split the string by commas
+    return(length(unique(go_terms)))  # Count unique GO terms
+  }
+})
+
+summary(out_emapper_annotations)
+
+#Count how many genes have zero GO term
+zero_go_count <- sum(out_emapper_annotations$GOs_count == 0)
+
+#Split the GOs column and create a list of all GO terms from the data
+go_ids <- unlist(out_emapper_annotations$GOs,",")
+
+#Count how many times each GO term appears across all genes
+go_term_count <- table(go_ids)
+
+#Identify the GO terms that occur less than 4 times or more than 500 times
+go_to_remove <- names(go_term_count[go_term_count < 4 | go_term_count > 500])
+
+summary(go_to_remove)
+
+removed_genes_based_GOs <- out_emapper_annotations %>%
+  filter(!GOs %in% go_to_remove)
+
+summary(removed_genes_based_GOs$GOs_count)
+
 
