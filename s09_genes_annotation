@@ -1,10 +1,10 @@
-export BRAKER_SIF=/data/home/mpx586/git_modules/braker/braker3_latest.sif
-
 # Input(s):
 softmask_genome="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/repeat_masker/05_full_out/clean_scaf.simple_mask.soft.fasta"
 Arthropoda="/data/scratch/mpx586/Batesia_hypochlora/RNA/gene_annotation/Arthropoda.fa"
 Batesia_RNA="/data/scratch/mpx586/Batesia_hypochlora/RNA/sam_to_bam/Batesia_RNA2.bam"
 second_braker="/data/scratch/mpx586/Batesia_hypochlora/RNA/gene_annotation/f2_braker/"
+
+export BRAKER_SIF=/data/home/mpx586/git_modules/braker/braker3_latest.sif
 
 # Commands
 apptainer exec -B ${PWD}:${PWD} ${BRAKER_SIF} braker.pl \
@@ -14,3 +14,4 @@ apptainer exec -B ${PWD}:${PWD} ${BRAKER_SIF} braker.pl \
           --workingdir $second_braker \
           --gff3 \
           --threads ${NSLOTS}
+
