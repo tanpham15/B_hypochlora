@@ -1,3 +1,6 @@
+##############################################################################################################
+# Using: MitoHiFi 3.2.1
+##############################################################################################################
 ### Change headers of scaffolds after removing Wolbachia
 awk '/^>/ {gsub(/[^a-zA-Z0-9]/,""); printf(">%s\n", "scaf" ++i); next} {print}' /polishing_both_sr_lr/rm_wolbachia.fa > /polishing_both_sr_lr/clean_renamed_scaf
 
