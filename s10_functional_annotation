@@ -1,1 +1,44 @@
+##############################################################################################################
+# Using emapper-2.1.12
+##############################################################################################################
 
+# Download database for emapper
+create_dbs.py -m diamond --dbname insecta --taxa Insecta
+
+# Module
+module load anaconda3
+conda activate /data/scratch/mpx586/github/eggnog-mapper/
+
+# Input(s):
+Batesia_braker="/data/scratch/mpx586/Batesia_hypochlora/RNA/gene_annotation/f2_braker/braker.aa"
+insecta_db="/data/scratch/mpx586/github/eggnog-mapper-data/insecta.dmnd"
+eggnog_out2="/data/scratch/mpx586/Batesia_hypochlora/RNA/functional_annotation2/egg_nog/eggnog_out2/"
+export EGGNOG_DATA_DIR=/data/scratch/mpx586/github/eggnog-mapper-data/
+
+# Commands
+emapper.py -i $Batesia_braker \
+          --dmnd_db $insecta_db \
+          --excel \
+          --output Batesia_eggnog \
+          --decorate_gff yes \
+          --output_dir $eggnog_out2
+
+##############################################################################################################
+# Using interproscan
+##############################################################################################################
+
+# Module
+module load java
+module load python
+export PATH=$PATH:/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/
+
+# Input(s):
+braker_no_asterix="/data/scratch/mpx586/Batesia_hypochlora/RNA/gene_annotation/f2_braker/Batesia_protein.aa.noStar.fasta"
+InterProScan_db="/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/data/"
+outputs="/data/scratch/mpx586/Batesia_hypochlora/RNA/functional_annotation2/interproscan/outputs/"
+#Command
+/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/interproscan.sh -i $braker_no_asterix \
+      -o $outputs \
+      -goterms \
+      -f gff3 \
+      -iprlookup
