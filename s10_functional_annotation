@@ -24,7 +24,7 @@ emapper.py -i $Batesia_braker \
           --output_dir $eggnog_out2
 
 ##############################################################################################################
-# Using interproscan
+# Using interproscan (didn't work)
 ##############################################################################################################
 
 # Module
@@ -42,3 +42,39 @@ outputs="/data/scratch/mpx586/Batesia_hypochlora/RNA/functional_annotation2/inte
       -goterms \
       -f gff3 \
       -iprlookup
+
+
+##############################################################################################################
+# Using Orthofinder
+##############################################################################################################
+
+#Module
+module load python
+module load mafft
+module load fastme
+module load mcl
+
+# Download database for orthofinder, then save to the directory /amino_acid_seq/
+wget -O drosophila_melanogaster.fasta.gz "https://rest.uniprot.org/uniprotkb/search?compressed=true&format=fasta&query=%28drosophila+melanogaster%29&size=500" 
+wget -O Bombyx_mori.fasta.gz "https://rest.uniprot.org/uniprotkb/search?compressed=true&format=fasta&query=%28Bombyx+mori%29&size=500"
+wget -O Danaus_plexippus.fasta.gz "https://rest.uniprot.org/uniprotkb/search?compressed=true&format=fasta&query=%28Danaus+plexippus%29&size=500"
+wget -O Heliconius_melpomene.fasta.gz "https://rest.uniprot.org/uniprotkb/search?compressed=true&format=fasta&query=%28Danaus+plexippus%29&size=500"
+wget -O Melitaea_cinxia.fasta.gz "https://rest.uniprot.org/uniprotkb/search?compressed=true&format=fasta&query=%28Melitaea+cinxia%29&size=500"
+
+gunzip *.fasta.gz
+
+export ORTHOFINDER_SIF=/data/home/mpx586/git_modules/orthofinder_latest.sif
+export OPENBLAS_NUM_THREADS=1
+
+# Input(s):
+amino_acid_seq="/data/scratch/mpx586/Batesia_hypochlora/RNA/functional_annotation2/orthofinder/amino_acid_seq/"
+
+# Commands
+ORTHOTHREADS=$((NSLOTS / 4))
+apptainer exec /data/home/mpx586/git_modules/orthofinder_latest.sif orthofinder \
+                -t ${NSLOTS} \
+                -S diamond \
+                -a ${ORTHOTHREADS} \
+                -f $amino_acid_seq
+
+
