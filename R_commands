@@ -151,7 +151,7 @@ library(clusterProfiler)
 #Set working directory
 setwd("D:/Documents/R_codes/Batesia")
 
-out_emapper_annotations <- read_excel("functional_annotation/out.emapper.annotations.xlsx")
+out_emapper_annotations <- read_excel("functional_annotation/Batesia_eggnog.emapper.annotations.xlsx", skip = 2)
 
 head(out_emapper_annotations)
 summary(out_emapper_annotations)
