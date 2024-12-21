@@ -1,0 +1,19 @@
+# Using mummer 4.0.0rc1
+
+#Load module
+module load anaconda3
+conda activate mummer
+
+#Inputs:
+rename_filtered_ref="/data/scratch/mpx586/Batesia_hypochlora/outputs3/synteny/ref_genome/filtered_Aglais.fasta"
+clean_soft_masked_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/repeat_masker/05_full_out/clean_scaf.simple_mask.soft.fasta"
+
+#Command:
+#--mum: return matches that are unique in both the reference
+nucmer -c 100 --mum -t ${NSLOTS} \
+      -p Batesia_to_Nymphalis_c100 \
+      $rename_filtered_ref $clean_soft_masked_scaf
+
+show-coords -r -c -l Batesia_to_Nymphalis_c100.delta > Batesia_to_Nymphalis_c100.coords
+
+# Check analysis in "R_commands"
