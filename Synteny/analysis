@@ -1,0 +1,6 @@
+# Synteny analysis a dot plot in R
+
+# Synteny analysis with a circle plot in R
+library(tidyverse)
+library(circlize)
+library(RColorBrewer)
