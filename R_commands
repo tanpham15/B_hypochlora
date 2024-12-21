@@ -186,4 +186,90 @@ removed_genes_based_GOs <- out_emapper_annotations %>%
 
 summary(removed_genes_based_GOs$GOs_count)
 
+###############################################################################################################################################################
+# Dot graph
+###############################################################################################################################################################
+library(dplyr)
+library(magrittr)
+library(GenomicRanges)
+library(knitr)
+library(ggplot2)
+library(tidyr)
+
+
+# Add function
+readDelta <- function(deltafile){
+  lines = scan(deltafile, 'a', sep='\n', quiet=TRUE)
+  lines = lines[-1]
+  lines.l = strsplit(lines, ' ')
+  lines.len = lapply(lines.l, length) %>% as.numeric
+  lines.l = lines.l[lines.len != 1]
+  lines.len = lines.len[lines.len != 1]
+  head.pos = which(lines.len == 4)
+  head.id = rep(head.pos, c(head.pos[-1], length(lines.l)+1)-head.pos)
+  mat = matrix(as.numeric(unlist(lines.l[lines.len==7])), 7)
+  res = as.data.frame(t(mat[1:5,]))
+  colnames(res) = c('rs','re','qs','qe','error')
+  res$qid = unlist(lapply(lines.l[head.id[lines.len==7]], '[', 2))
+  res$rid = unlist(lapply(lines.l[head.id[lines.len==7]], '[', 1)) %>% gsub('^>', '', .)
+  res$strand = ifelse(res$qe-res$qs > 0, '+', '-')
+  res
+}
+
+# Setwd
+setwd("D:/Documents/R_codes/Batesia")
+mumgp = readDelta("nucmer/Batesia_to_Nymphalis_c100_l500.delta")
+mumgp %>% head %>% kable
+
+#Filter contigs with poor alignments
+filterMum <- function(df, minl=500, flanks=1e3){
+  coord = df %>% filter(abs(re-rs)>minl) %>% group_by(qid, rid) %>%
+    summarize(qsL=min(qs)-flanks, qeL=max(qe)+flanks, rs=median(rs)) %>%
+    ungroup %>% arrange(desc(rs)) %>%
+    mutate(qid=factor(qid, levels=unique(qid))) %>% select(-rs)
+  merge(df, coord) %>% filter(qs>qsL, qe<qeL) %>%
+    mutate(qid=factor(qid, levels=levels(coord$qid))) %>% select(-qsL, -qeL)
+}
+
+# Filtering Contigs
+mumgp.filt = filterMum(mumgp, minl=1e3)
+mumgp.filt %>% head %>% kable
+
+#Diagonalize
+diagMum <- function(df){
+  ## Find best qid order
+  rid.o = df %>% group_by(qid, rid) %>% summarize(base=sum(abs(qe-qs)),
+                                                  rs=weighted.mean(rs, abs(qe-qs))) %>%
+    ungroup %>% arrange(desc(base)) %>% group_by(qid) %>% do(head(., 1)) %>%
+    ungroup %>% arrange(desc(rid), desc(rs)) %>%
+    mutate(qid=factor(qid, levels=unique(qid)))
+  ## Find best qid strand
+  major.strand = df %>% group_by(qid) %>%
+    summarize(major.strand=ifelse(sum(sign(qe-qs)*abs(qe-qs))>0, '+', '-'),
+              maxQ=max(c(qe, qs)))
+  merge(df, major.strand) %>% mutate(qs=ifelse(major.strand=='-', maxQ-qs, qs),
+                                     qe=ifelse(major.strand=='-', maxQ-qe, qe),
+                                     qid=factor(qid, levels=levels(rid.o$qid)))
+}
+
+#Diagonalization
+mumgp.filt.diag = diagMum(mumgp.filt)
+
+# Visualization
+ggplot(mumgp.filt.diag, aes(x=rs, xend=re, y=qs, yend=qe, colour=strand)) +
+  geom_segment(show.legend=FALSE) + geom_point(alpha=0.09) + theme_bw() + 
+  facet_grid(qid~rid, scales='free', space='free', switch='both') +
+  guides(colour=guide_legend(override.aes=list(alpha=1))) + 
+  theme(strip.text.y=element_text(angle=180, size=10),
+        strip.text.x=element_text(size=10),
+        strip.background=element_blank(),
+        legend.position=c(1,-.03), legend.justification=c(1,1),
+        legend.direction='horizontal',
+        axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+        axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        panel.spacing=unit(0, 'cm')) +
+  xlab('Nymphalis io') + ylab('Batesia hypochlora') + scale_colour_brewer(palette='Set1')
+
+
+
 
