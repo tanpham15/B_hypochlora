@@ -1,6 +1,251 @@
-# Synteny analysis a dot plot in R
+############################### Synteny analysis a dot plot in R #######################################
+library(dplyr)
+library(magrittr)
+library(GenomicRanges)
+library(knitr)
+library(ggplot2)
+library(tidyr)
 
-# Synteny analysis with a circle plot in R
+
+# Add function
+readDelta <- function(deltafile){
+  lines = scan(deltafile, 'a', sep='\n', quiet=TRUE)
+  lines = lines[-1]
+  lines.l = strsplit(lines, ' ')
+  lines.len = lapply(lines.l, length) %>% as.numeric
+  lines.l = lines.l[lines.len != 1]
+  lines.len = lines.len[lines.len != 1]
+  head.pos = which(lines.len == 4)
+  head.id = rep(head.pos, c(head.pos[-1], length(lines.l)+1)-head.pos)
+  mat = matrix(as.numeric(unlist(lines.l[lines.len==7])), 7)
+  res = as.data.frame(t(mat[1:5,]))
+  colnames(res) = c('rs','re','qs','qe','error')
+  res$qid = unlist(lapply(lines.l[head.id[lines.len==7]], '[', 2))
+  res$rid = unlist(lapply(lines.l[head.id[lines.len==7]], '[', 1)) %>% gsub('^>', '', .)
+  res$strand = ifelse(res$qe-res$qs > 0, '+', '-')
+  res
+}
+
+# Setwd
+setwd("D:/Documents/R_codes/Batesia")
+
+#Read a delta file
+mumgp = readDelta("nucmer/Batesia_to_Nymphalis_c100.delta")
+mumgp %>% head %>% kable
+
+#Filter contigs with poor alignments
+filterMum <- function(df, minl=500, flanks=1e3){
+  coord = df %>% filter(abs(re-rs)>minl) %>% group_by(qid, rid) %>%
+    summarize(qsL=min(qs)-flanks, qeL=max(qe)+flanks, rs=median(rs)) %>%
+    ungroup %>% arrange(desc(rs)) %>%
+    mutate(qid=factor(qid, levels=unique(qid))) %>% select(-rs)
+  merge(df, coord) %>% filter(qs>qsL, qe<qeL) %>%
+    mutate(qid=factor(qid, levels=levels(coord$qid))) %>% select(-qsL, -qeL)
+}
+
+# Filtering Contigs
+mumgp.filt = filterMum(mumgp, minl=1e3)
+mumgp.filt %>% head %>% kable
+
+#Diagonalize
+diagMum <- function(df){
+  ## Find best qid order
+  rid.o = df %>% group_by(qid, rid) %>% summarize(base=sum(abs(qe-qs)),
+                                                  rs=weighted.mean(rs, abs(qe-qs))) %>%
+    ungroup %>% arrange(desc(base)) %>% group_by(qid) %>% do(head(., 1)) %>%
+    ungroup %>% arrange(desc(rid), desc(rs)) %>%
+    mutate(qid=factor(qid, levels=unique(qid)))
+  ## Find best qid strand
+  major.strand = df %>% group_by(qid) %>%
+    summarize(major.strand=ifelse(sum(sign(qe-qs)*abs(qe-qs))>0, '+', '-'),
+              maxQ=max(c(qe, qs)))
+  merge(df, major.strand) %>% mutate(qs=ifelse(major.strand=='-', maxQ-qs, qs),
+                                     qe=ifelse(major.strand=='-', maxQ-qe, qe),
+                                     qid=factor(qid, levels=levels(rid.o$qid)))
+}
+
+#statistic for the alginment
+mumgp_summary <- mumgp %>%
+  group_by(qid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(qe-qs)),
+    min_value = min(abs(qe-qs)),
+    max_value = max(abs(qe-qs))
+  )
+
+ref_summary <- mumgp.filt %>%
+  group_by(rid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(re-rs)),
+    min_value = min(abs(re-rs)),
+    max_value = max(abs(re-rs))
+  )
+
+que_summary <- mumgp.filt %>%
+  group_by(qid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(qe-qs)),
+    min_value = min(abs(qe-qs)),
+    max_value = max(abs(qe-qs))
+  )
+
+
+#Diagonalization
+mumgp.filt.diag = diagMum(mumgp.filt)
+
+# Visualization
+ggplot(mumgp.filt.diag, aes(x=rs, xend=re, y=qs, yend=qe, colour=strand)) +
+  geom_segment(show.legend=FALSE) + geom_point(alpha=0.09) + theme_bw() + 
+  facet_grid(qid~rid, scales='free', space='free', switch='both') +
+  guides(colour=guide_legend(override.aes=list(alpha=1))) + 
+  theme(strip.text.y=element_text(angle=180, size=10),
+        strip.text.x=element_text(size=10),
+        strip.background=element_blank(),
+        legend.position=c(1,-.03), legend.justification=c(1,1),
+        legend.direction='horizontal',
+        axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+        axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        panel.spacing=unit(0, 'cm')) +
+  xlab('Nymphalis io') + ylab('Batesia hypochlora') + scale_colour_brewer(palette='Set1')
+
+
+############################### Synteny analysis - a circle plot in R #######################################
+
+# Packages
 library(tidyverse)
 library(circlize)
 library(RColorBrewer)
+
+# Define functions
+`%notin%` <- Negate(`%in%`)
+
+# set working directory
+setwd("D:/Documents/R_codes/Batesia")
+
+# Prefix
+Prefix <- "nucmer_aln_Bates_v_Nymph"
+
+#Extract headers of contigs
+# grep '>' Ref_Nymphalis.fasta | sed 's/>//' > ref_header.txt
+# grep '>' clean_scaf.fasta | sed 's/>//' > header_clean_scaf.txt
+
+Ref_pal <- read_table("circos_plot/filt_ref_header.txt", col_names = F) %>%
+  rename(Chr = X1) %>%
+  mutate(color = rep(brewer.pal(n=11, "Spectral"), length.out = length(Chr)))
+
+
+Qry_pal <-read_table("circos_plot/header_clean_scaf.txt", col_names = F) %>%
+  rename(Chr = X1) %>%
+  mutate(color = "#FFFFFF")
+
+Pal1 <- union(Ref_pal, Qry_pal)
+
+#### load data ####
+
+## if data are in a csv file generated using nucmer -> show-coords > .coords file then modified using qwk, uncomment the following:
+nucmer_coord_colnames2 <- c('RS','RE','QS','QE','L1','L2','Percent','lenR','lenQ','covR','covQ','Ref','Qry')
+# Alignment <- read_csv("nucmer_aln_Pnap_v_Pmac000.1polish.filt.coords", col_names = nucmer_coord_colnames2 )
+# Remove: Alignment <- read.csv("circos_plot/scf_to_ref_c100.filt.coords", col_names = nucmer_coord_colnames2 )
+
+
+Alignment <- read_delim("circos_plot/Batesia_to_Nymphalis_c100_l500.coords", 
+                                   delim = "\t", escape_double = FALSE, skip = 4, 
+                                   col_names = nucmer_coord_colnames2, trim_ws = TRUE)
+
+
+#### Filter data ####
+
+#remove scaffolds with only one hit
+Alignment2 <- Alignment %>%
+  group_by(Ref) %>%
+  mutate(n_segments = n()) %>%
+  filter(n_segments != 1) %>%
+  select(-n_segments) %>% ungroup()
+
+# Visualize alignment
+plot <- ggplot(data = Alignment2)
+plot + geom_point( aes(x = Percent, y = L1))
+plot + geom_histogram( aes(log10(L1)))
+
+# remove short scaffolds, short alignments, low identity alignments
+t_per <- 80
+t_len <- 1000
+# note that here I am selecting < t_per
+Alignment3 <- Alignment2 %>% filter(lenR >= 100000 & L1 >= t_len & Percent >= t_per)
+
+
+#### Create vectors for circlize plot ####
+
+# Define the order of the reference and query chromosomes
+Ref_order <- unique(Alignment3$Ref)
+# or, if you want it in the correct order,
+Ref_order <- Ref_pal$Chr[1:length(unique(Alignment3$Ref))]
+Qry_order <- rev(unique(Alignment3[Alignment3$Ref %in% Ref_order,]$Qry))
+Alignment_order <- c(Ref_order, Qry_order)
+Alignment_order <- factor(Alignment_order, levels = Alignment_order)
+
+# Define the lengths of each chromosome
+Ref3 <- Alignment3 %>% select(Ref, lenR) %>% unique() %>% mutate(Ref = factor(Ref, levels = Ref_order)) %>% arrange(Ref)
+Qry3 <- Alignment3 %>% select(Qry, lenQ) %>% unique() %>% mutate(Qry = factor(Qry, levels = Qry_order)) %>% arrange(Qry)
+Alignment_tracks <- cbind(rep(0, length(Alignment_order)),c(Ref3$lenR,Qry3$lenQ))
+
+
+#### Create the circlize plot ####
+pdf(paste0(Prefix,"_circosPlot_",t_per,"id_", t_len, "L1_1MlenR.pdf"), width = 10, height=7)
+par(mar = c(1, 1, 1, 1))
+circos.par(cell.padding = c(0, 0, 0, 0))
+circos.initialize(factors = Alignment_order, xlim = Alignment_tracks)
+circos.trackPlotRegion(ylim = c(0, 1), panel.fun = function(x, y) {
+  chr = get.cell.meta.data("sector.index")
+  xlim = get.cell.meta.data("xlim")
+  ylim = get.cell.meta.data("ylim")
+  circos.rect(xlim[1], 0, xlim[2], 0.5, col = Pal1$color[Pal1$Chr == chr])
+  circos.text(mean(xlim), 1, chr, cex = 0.5, facing = "clockwise",
+              niceFacing = TRUE)
+}, bg.border = NA)
+
+for ( i in c(1:dim(Alignment3)[1])){
+  reference <- Alignment3$Ref[i]
+  query <- Alignment3$Qry[i]
+  RS <- Alignment3$RS[i]
+  RE <- Alignment3$RE[i]
+  QS <- Alignment3$QS[i]
+  QE <- Alignment3$QE[i]
+  circos.link(reference, c(RS,RE),
+              query, c(QS, QE),
+              col = Pal1$color[Pal1$Chr == reference])}
+
+
+for (i in 1:dim(Alignment3)[1]) {
+  reference <- Alignment3$Ref[i]
+  query <- Alignment3$Qry[i]
+  RS <- Alignment3$RS[i]
+  RE <- Alignment3$RE[i]
+  QS <- Alignment3$QS[i]
+  QE <- Alignment3$QE[i]
+  
+  print(paste("Reference:", reference))
+  print(paste("Query:", query))
+  print(paste("RS:", RS, "RE:", RE))
+  print(paste("QS:", QS, "QE:", QE))
+  
+  subset_condition <- Pal1$Chr == reference
+  print(paste("Subset Condition:", subset_condition))
+  
+  circos.link(
+    reference, c(RS, RE),
+    query, c(QS, QE),
+    col = Pal1$color[subset_condition]
+  )
+}
+
+circos.clear()
+dev.off()
+
+
+
+
+
