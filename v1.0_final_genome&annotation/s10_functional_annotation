@@ -23,26 +23,6 @@ emapper.py -i $Batesia_braker \
           --decorate_gff yes \
           --output_dir $eggnog_out2
 
-##############################################################################################################
-# Using interproscan (didn't work)
-##############################################################################################################
-
-# Module
-module load java
-module load python
-export PATH=$PATH:/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/
-
-# Input(s):
-braker_no_asterix="/data/scratch/mpx586/Batesia_hypochlora/RNA/gene_annotation/f2_braker/Batesia_protein.aa.noStar.fasta"
-InterProScan_db="/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/data/"
-outputs="/data/scratch/mpx586/Batesia_hypochlora/RNA/functional_annotation2/interproscan/outputs/"
-#Command
-/data/scratch/mpx586/github/interproscan/interproscan-5.72-103.0/interproscan.sh -i $braker_no_asterix \
-      -o $outputs \
-      -goterms \
-      -f gff3 \
-      -iprlookup
-
 
 ##############################################################################################################
 # Using Orthofinder
