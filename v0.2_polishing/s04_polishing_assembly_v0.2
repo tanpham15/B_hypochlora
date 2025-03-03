@@ -17,8 +17,6 @@ sorted_lr_aln_genome_v02="/data/scratch/mpx586/Batesia_hypochlora/outputs3/samto
 outdir="/data/scratch/mpx586/Batesia_hypochlora/outputs3/polishing_both_sr_lr"
 
 # Commands
-samtools index $sort_coord_aln_ctg
-
 pilon -Xmx78G --genome $sorted_df_asm \
 	--bam $sort_coord_aln_ctg \
 	--bam $sorted_lr_aln_genome_v02 \
