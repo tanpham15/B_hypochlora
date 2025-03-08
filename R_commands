@@ -252,6 +252,35 @@ diagMum <- function(df){
                                      qid=factor(qid, levels=levels(rid.o$qid)))
 }
 
+
+#statistic for the alginment
+mumgp_summary <- mumgp %>%
+  group_by(qid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(qe-qs)),
+    min_value = min(abs(qe-qs)),
+    max_value = max(abs(qe-qs))
+  )
+
+ref_summary <- mumgp.filt %>%
+  group_by(rid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(re-rs)),
+    min_value = min(abs(re-rs)),
+    max_value = max(abs(re-rs))
+  )
+
+que_summary <- mumgp.filt %>%
+  group_by(qid) %>%
+  summarize(
+    count = n(),
+    mean_value = mean(abs(qe-qs)),
+    min_value = min(abs(qe-qs)),
+    max_value = max(abs(qe-qs))
+  )
+
 #Diagonalization
 mumgp.filt.diag = diagMum(mumgp.filt)
 
