@@ -83,7 +83,7 @@ clean_scaf="/data/scratch/mpx586/Batesia_hypochlora/outputs3/masking/clean_scaf.
 #create output folders
 mkdir -p logs 01_simple_out 02_insecta_out 03_known_out 04_unknown_out
 
-#Running RepeatModeler 
+#Running RepeatMasker 
 #Command
 #-e: engine, -a: Writes alignments in .align output file, -dir: output directory
 #-xsmal: Returns repetitive regions in lowercase (rest capitals) rather than mask, -noint: Only masks low complex/simple repeats (no interspersed repeats),
