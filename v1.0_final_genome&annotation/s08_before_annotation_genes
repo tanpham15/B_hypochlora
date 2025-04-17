@@ -40,4 +40,9 @@ hq_Batesia_RNA="/data/scratch/mpx586/Batesia_hypochlora/RNA/1_qltcontrol/trimmin
 #Script
 minimap2 -ax splice:hq -uf $softmask_genome $hq_Batesia_RNA > aln_rna.sam
 
+# Load module(s):
+module load samtools
+
+# Commands
+samtools view aln_rna.sam -b -S -o /data/scratch/mpx586/Batesia_hypochlora/RNA/sam_to_bam/Batesia_RNA2.bam
 
