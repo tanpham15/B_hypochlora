@@ -3,6 +3,8 @@
 ##############################################################################################################
 
 # Download database for emapper
+download_eggnog_data.py --data_dir /data/scratch/mpx586/github/eggnog-mapper-data/ \
+                        -M -d 50557 --dbname 'Insecta' -y -f
 create_dbs.py -m diamond --dbname insecta --taxa Insecta
 
 # Module
